@@ -8,6 +8,42 @@ from email.mime.text import MIMEText
 import pymysql, pymongo
 
 @csrf_exempt
+def search(request):
+	result_json = {"status":"error"}
+	if request.method == 'POST':
+		time_search = int(time.time())
+		limit = 25
+		if request.META.get('CONTENT_TYPE') == 'application/json':
+			post_var = json.loads(request.body.decode('utf8'))
+			if "timestamp" in post_var:
+				time_search = int(post_var["timestamp"])
+			if "limit" in post_var:
+				if post_var["limit"] > 100:
+					limit = 100
+				else:
+					if post_var["limit"]>0:
+						limit = int(post_var["limit"])
+		client = pymongo.MongoClient()
+		mdb = client['356project']
+		item_collection = mdb['Item']
+		print(type(time_search))
+		result_set = item_collection.find({"timestamp":{ "$lt": time_search}}).limit(limit)
+		if result_set == None:
+			client.close()
+			result_json['error']= "Invalid id"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		
+		items = []
+		for result in result_set:
+			item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"] }
+			items += [item_data]
+		result_json = {"items":items}
+		result_json["status"] = "OK"
+		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		
+
+
+@csrf_exempt
 def index(request):
 	if request.META.get('CONTENT_TYPE') == 'application/json':
 		if request.method == 'POST':
@@ -54,7 +90,9 @@ def adduser(request):
 				cursor.execute(sql)
 				db.commit()
 			except:
-				
+				#cursor.execute(sql)
+				#db.commit()
+				print("error1")
 				db.rollback()
 				
 			db.close()
@@ -75,6 +113,7 @@ def adduser(request):
 			except:
 				result_json['error'] = "Invalid email"
 		else:
+			print("error2")
 			result_json['error'] = "Invalid Json"
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
@@ -156,7 +195,7 @@ def login(request):
 		if request.META.get('CONTENT_TYPE') == 'application/json':
 			post_var = json.loads(request.body.decode('utf8'))
 			username = post_var['username']
-			password = password['password']
+			password = post_var['password']
 
 			db  = pymysql.connect(host='localhost',
                              user='root',
@@ -232,12 +271,13 @@ def additem(request):
 			client = pymongo.MongoClient()
 			mdb = client['356project']
 			item_collection = mdb['Item']
-			utime = datetime.datetime.utcnow()
-			item_id = item_collection.count()
+			utime = int(time.time())
+			item_id = str(item_collection.count())
 			new_Item = {"username":username,"id":item_id, "property":{"likes":0},"retweeted":0,"content":content, "timestamp":utime}
 			try:
 				object_id = item_collection.insert_one(new_Item)
 				result_json['id'] = item_id
+				result_json['status']="OK"
 			except:
 				result_json['error'] = "Wrong input"
 			client.close()
@@ -249,6 +289,7 @@ def additem(request):
 def item(request,iid):
 	result_json = {"status":"error"}
 	if request.method == 'GET':
+		iid = str(iid)
 		client = pymongo.MongoClient()
 		mdb = client['356project']
 		item_collection = mdb['Item']
@@ -257,6 +298,7 @@ def item(request,iid):
 			client.close()
 			result_json['error']= "Invalid id"
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		print(result['timestamp'])
 		item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"] }
 		result_json = {"item":item_data}
 		result_json["status"] = "OK"
