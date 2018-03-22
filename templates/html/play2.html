@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load staticfiles %}
+	{% csrf_token %}
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+	
+	<script>
+		
+
+		var g = {{grid|safe}}
+		var grid = g.toString().split(',');
+		function displayByGrid(){
+
+			
+			var x = new Image;
+			x.src = "{% static 'img/x.jpg' %}";
+			var o = new Image;
+			o.src = "{% static 'img/o.jpg' %}";
+			var e = new Image;
+			e.src = "{% static 'img/squre.jpg' %}";
+			
+			for (i = 0; i<9; i++){
+				str1 = "img"+i;
+				if(grid[i].valueOf() == ' '){
+					document.getElementById(str1).src = e.src;
+					document.getElementById(str1).disabled = false;
+				}
+
+				else if(grid[i].valueOf() == 'X'){
+					document.getElementById(str1).src = x.src;
+					document.getElementById(str1).disabled = true;
+				}
+
+				else if(grid[i].valueOf() == 'O'){
+					document.getElementById(str1).src = o.src;
+					document.getElementById(str1).disabled = true;
+				}
+
+				else{}
+			}
+		}
+		
+		///////////////////////////////////////////////////////////////////////////////////////////////////////////
+		// var grids = '{{grids|safe}}'
+		// var obj = JSON.parse(grids);
+		// function hasEmptyGrid(){
+		// 	for( i = 0; i<9 ;i++){
+		// 		if(obj.grid[i].valueOf() == ' '){
+		// 			return true;
+		// 		}
+		// 	}
+		// 	return false;
+		// }
+
+		function changeImg(i){
+				var obj = {
+
+					table: []
+				};
+				str = "{\"move\": "+i+"}"
+				obj.table.push(i );
+				//alert(str)
+				var xmlhttp = new XMLHttpRequest();
+				xmlhttp.open("POST","http://127.0.0.1:8000/ttt/play/");
+				
+				xmlhttp.setRequestHeader("Content-Type", "application/json");
+
+				xmlhttp.send(str);
+				//alert(1);
+				xmlhttp.onreadystatechange = function() {
+				  if (this.readyState == 4 && this.status == 200) {
+				    //alert(this.responseText);
+				    var newObj = JSON.parse(this.responseText);
+				    winner = newObj.winner;
+				    try{
+				    if(winner.valueOf() == ' ' || winner.valueOf() == 'X' || winner.valueOf() == 'O'){
+				    	
+				    	for (i=0;i<9;i++){
+				    		grid[i] = 0;
+				    	}
+				    	if(winner.valueOf() == 'X'){
+				    	var old_s_s = document.getElementById("score").textContent;
+					    var score = parseInt(old_s_s)
+					    score++;
+					    document.getElementById("score").textContent=score;
+						}
+
+				    }
+					}
+
+				    catch(err){
+
+				    	grid = newObj.grid;
+				    }
+				    //alert(grid[4])
+				    displayByGrid();
+
+				 //    changeAllO(newObj.grid);
+				 //    obj = newObj;
+				    
+				    
+				 //    if(obj.winner.valueOf()!=''){
+				    	
+				 //    	if(obj.winner.valueOf()=='X'){
+				 //    		document.getElementById("result").textContent="You win!"
+				 //    	}
+				 //    	else if (obj.winner.valueOf()=='O'){
+				 //    		document.getElementById("result").textContent="You lose!"
+				 //    	}
+				 //    	else{
+				 //    		document.getElementById("result").textContent="Draw!"
+				 //    	}
+
+					// document.getElementById("img1").disabled = true;
+					
+					// document.getElementById("img2").disabled = true;
+
+					// document.getElementById("img3").disabled = true;
+
+					// document.getElementById("img4").disabled = true;
+
+					// document.getElementById("img5").disabled = true;
+
+					// document.getElementById("img6").disabled = true;
+
+					// document.getElementById("img7").disabled = true;
+
+					// document.getElementById("img8").disabled = true;
+
+					// document.getElementById("img0").disabled = true;
+					// }
+				}
+			}
+
+		}
+		// function changeAllO(grid){
+		// 	for( i=0; i<9; i++){
+			
+		// 		if(grid[i].valueOf() == 'O'){
+		// 			document.getElementById('img'+i).src="{% static 'img/o.jpg' %}";
+
+		// 		}
+		// 	}
+		// }
+		
+	</script>
+	
+</head>
+<body onload="displayByGrid();">
+	<h5>Hello </h5>
+	<table>
+		<tr>
+			<th><img id="img0" alt="squre" src="" height="150" width="150" onclick="changeImg(0)"/></th>
+			<th><img id="img1" alt="squre" src="" height="150" width="150" onclick="changeImg(1)"/></th>
+			<th><img id="img2" alt="squre" src="" height="150" width="150" onclick="changeImg(2)"/></th>
+		</tr>
+		<tr>
+			<th><img id="img3" alt="squre" src="" height="150" width="150" onclick="changeImg(3)" /></th>
+			<th><img id="img4" alt="squre" src="" height="150" width="150" onclick="changeImg(4)"/></th>
+			<th><img id="img5" alt="squre" src="" height="150" width="150" onclick="changeImg(5)"/></th>
+		</tr>
+		<tr>
+			<th><img id="img6" alt="squre" src="" height="150" width="150" onclick="changeImg(6)"/></th>
+			<th><img id="img7" alt="squre" src="" height="150" width="150" onclick="changeImg(7)"/></th>
+			<th><img id="img8" alt="squre" src="" height="150" width="150" onclick="changeImg(8);"/></th>
+		</tr>
+		
+	</table>
+	<h5>Score: </h5>
+	<h5 id='score'>{{ human }}</h5>
+	
+</body>
+</html>

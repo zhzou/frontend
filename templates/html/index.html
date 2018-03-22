@@ -1,0 +1,17 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load staticfiles %}
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+	<h1>Hello</h1>
+	<form method="post" action='/ttt/'>{% csrf_token %}
+		<label class="labelstyle"><b>Enter Your Name Please:</b></label>
+		<br/>
+		<input type="text" name="name" value=""/>
+		<br/>
+		<button type="submit">Enter</button>
+	</form>
+</body>
+</html>

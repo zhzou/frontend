@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load staticfiles %}
+	{% csrf_token %}
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+	
+	<script>
+		var grids = '{{grids|safe}}'
+		var obj = JSON.parse(grids);
+		function hasEmptyGrid(){
+			for( i = 0; i<9 ;i++){
+				if(obj.grid[i].valueOf() == ' '){
+					return true;
+				}
+			}
+			return false;
+		}
+
+		function changeImg(i){
+			if (obj.grid[i].valueOf() == ' '){
+				var str1 = "img" + i;
+				document.getElementById(str1).src="{% static 'img/x.jpg' %}";
+				obj.grid[i] = 'X';
+				var xmlhttp = new XMLHttpRequest();
+				xmlhttp.open("POST","http://130.245.169.164/ttt/play");
+				
+				xmlhttp.setRequestHeader("Content-Type", "application/json");
+
+				xmlhttp.send(JSON.stringify(obj));
+				//alert(1);
+				xmlhttp.onreadystatechange = function() {
+				  if (this.readyState == 4 && this.status == 200) {
+				    //alert(this.responseText);
+				    var newObj = JSON.parse(this.responseText);
+				    changeAllO(newObj.grid);
+				    obj = newObj;
+				    if(obj.
+winner.valueOf()!='N'){
+				    	
+				    	if(obj.winner.valueOf()=='X'){
+				    		document.getElementById("result").textContent="You win!"
+				    	}
+				    	else if (obj.winner.valueOf()=='O'){
+				    		document.getElementById("result").textContent="You lose!"
+				    	}
+				    	else{
+				    		document.getElementById("result").textContent="Draw!"
+				    	}
+				    }
+				    
+				  }
+				};
+				//alert("1");
+			}
+		}
+		function changeAllO(grid){
+			for( i=0; i<9; i++){
+			
+				if(grid[i].valueOf() == 'O'){
+					document.getElementById('img'+i).src="{% static 'img/o.jpg' %}";
+
+				}
+			}
+		}
+	</script>
+	
+</head>
+<body>
+	<h5>Hello {{ name }}, {{ date }}</h5>
+	<table>
+		<tr>
+			<th><img id="img0" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(0)"/></th>
+			<th><img id="img1" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(1)"/></th>
+			<th><img id="img2" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(2)"/></th>
+		</tr>
+		<tr>
+			<th><img id="img3" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(3)" /></th>
+			<th><img id="img4" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(4)"/></th>
+			<th><img id="img5" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(5)"/></th>
+		</tr>
+		<tr>
+			<th><img id="img6" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(6)"/></th>
+			<th><img id="img7" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(7)"/></th>
+			<th><img id="img8" alt="squre" src="{% static 'img/squre.jpg' %}" height="150" width="150" onclick="changeImg(8)"/></th>
+		</tr>
+		
+	</table>
+	<h5 id='result'></h5>
+	
+</body>
+</html>
