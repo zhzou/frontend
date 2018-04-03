@@ -9,6 +9,6 @@ urlpatterns = [
     path('login', views.login, name='login'),
     path('logout', views.logout, name='logout'),
     path('additem',views.additem,name='additem'),
-    path('item/<int:iid>', views.item, name='item'),
-    path('search',views.search,name='item'),
+    path('item/<str:iid>', views.item, name='insert_item'),
+    path('search',views.search,name='search_item'),
 ]

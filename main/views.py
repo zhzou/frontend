@@ -73,7 +73,7 @@ def index(request):
 				headers = {'content-type': 'application/json'}
 				r = requests.post('http://130.245.169.164/ttt/login', data=json.dumps(send_json), headers=headers)
 				
-				if r.cookies['SESSION'] != "":
+				if 'SESSION' in r.cookies and r.cookies['SESSION'] != "":
 					session = r.cookies['SESSION']
 					#session
 					
