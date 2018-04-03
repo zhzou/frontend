@@ -34,7 +34,8 @@ def search(request):
 		
 		items = []
 		for result in result_set:
-			item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"] }
+			result['property']['likes'] = int(result['property']['likes'])
+			item_data = {"id":str(result['id']),"username":result['username'],"property":result['property'],"retweeted":int(result['retweeted']),"content":result["content"],"timestamp":result["timestamp"] }
 			items += [item_data]
 		result_json = {"items":items}
 		result_json["status"] = "OK"
@@ -280,7 +281,7 @@ def additem(request):
 			#item_id = str(item_collection.count())
 			item_id = str(int(result_count['count']))
 			o = count_collection.update({'count':result_count['count']},{'count':int(result_count['count']+1)},upsert=False)
-			new_Item = {"username":username,"id":item_id, "property":{"likes":0},"retweeted":0,"content":content, "timestamp":utime}
+			new_Item = {"username":username,"id":item_id, "property":{"likes":int(0)},"retweeted":int(0),"content":content, "timestamp":utime}
 			try:
 				object_id = item_collection.insert_one(new_Item)
 				result_json['id'] = item_id
@@ -294,42 +295,7 @@ def additem(request):
 
 def item(request,iid):
         result_json = {"status":"error"}
-        if request.method == 'GET':
-                iid = str(iid)
-                client = pymongo.MongoClient()
-                mdb = client['356project']
-                item_collection = mdb['Item']
-                result = item_collection.find_one({"id":iid})
-                if result == None:
-                        client.close()
-                        result_json['error']= "Invalid id"
-                        return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-                print(result['timestamp'])
-                item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"]}
-                result_json = {"item":item_data}
-                result_json["status"] = "OK"
-                client.close()
-                return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-        if request.method == 'DELETE':
-                iid = str(iid)
-                client = pymongo.MongoClient()
-                mdb = client['356project']
-                item_collection = mdb['Item']
-                result = item_collection.find_one({"id":iid})
-                if result == None:
-                        client.close()
-                        result_json['error']= "Invalid id"
-                        return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-                print(result['timestamp'])
-                #item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"]}
-                item_collection.delete_many({"id":iid})
-                #result_json = {"item":item_data}
-                result_json["status"] = "OK"
-                client.close()
-                return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-
-def item(request,iid):
-        result_json = {"status":"error"}
+        print(request.method)
         if request.method == 'GET':
                 iid = str(iid)
                 client = pymongo.MongoClient()

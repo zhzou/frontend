@@ -6,14 +6,10 @@
 </head>
 <body>
 	<h1>Hello</h1>
-	<form method="post" action='/register'>{% csrf_token %}
-		<label class="labelstyle"><b>Enter Your Username Please:</b></label>
+	<form method="post" action='/verify_page'>{% csrf_token %}
+		<label class="labelstyle"><b>Enter Your Key Please:</b></label>
 		<br/>
-		<input type="text" name="username" value=""/>
-		<br/>
-		<label class="labelstyle"><b>Enter Your Password Please:</b></label>
-		<br/>
-		<input type="text" name="password" value=""/>
+		<input type="text" name="key" value=""/>
 		<br/>
 		<label class="labelstyle"><b>Enter Your Email Please:</b></label>
 		<br/>

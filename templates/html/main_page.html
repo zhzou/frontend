@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html>
+<head>
+	{% load staticfiles %}
+	<link rel="stylesheet" href="{% static 'css/style.css' %}">
+</head>
+<body>
+	<h1>Hello, welcome to Twizzer {{ username }}</h1>
+	<b>Search:</b>
+	<form method="post" action='/search_main'>{% csrf_token %}
+		<label><b>Enter Timestamp:</b></label>
+		<br/>
+		<input type="text" name="timestamp" value=""/>
+		<br/>
+		<label><b>Enter Limit:</b></label>
+		<br/>
+		<input type="text" name="limit" value=""/>
+		<br/>
+		<button type="submit">Search</button>
+	</form>
+	<b>Additem:</b>
+	<form method="post" action='/additem_main'>{% csrf_token %}
+		<label><b>Enter Content:</b></label>
+		<br/>
+		<input type="text" name="content" value=""/>
+		<br/>
+		<button type="submit">Add</button>
+	</form>
+	<b>Add item:</b>
+	<form method="post" action='/item_main'>{% csrf_token %}
+		<label><b>Enter id:</b></label>
+		<br/>
+		<input type="text" name="id" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="true">
+		<button type="submit">Search</button>
+	</form>
+	<b>Delete item:</b>
+	<form method="post" action='/item_main'>{% csrf_token %}
+		<label><b>Enter id:</b></label>
+		<br/>
+		<input type="text" name="id" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="false">
+		<button type="submit">Delete</button>
+	</form>
+</body>
+</html>
