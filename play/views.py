@@ -44,13 +44,85 @@ def search(request):
 @csrf_exempt
 def follow(request):
 	result_json = {"status":"error"}
+
 	if request.method == 'POST':
 		if request.META.get('CONTENT_TYPE') == 'application/json':
-			post_json = json.loads(request.boby.decode('utf8'))
+			
+
+			if 'SESSION' in request.COOKIES:
+				session = request.COOKIES['SESSION']
+			else:
+				result_json["error"] = "log in first"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			post_json  = json.loads(request.body.decode('utf8'))
 			follow_boolean = True
 			if "follow" in post_json:
 				follow_boolean = post_json["follow"]
 			username = post_json["username"]
+			
+			#current username == follower
+			db  = pymysql.connect(host='localhost',
+                             user='root',
+                             password='1234',
+                             db='356project',
+                             charset='utf8mb4',
+                             )
+			cursor = db.cursor()
+			cursor.execute("SELECT username FROM SESSIONS WHERE session=\""+session+"\"")
+			follower = cursor.fetchone()
+			if follower == None:
+				db.close()
+				result_json["error"] = "log in first"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			follower = follower[0]
+			#check username exist
+			cursor.execute("SELECT username FROM ACCOUNTS WHERE username=\""+username+"\" AND verified = true")
+			check = cursor.fetchone()
+			if check == None:
+				db.close()
+				result_json["error"] = "Invalid username"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
+			#
+			db.close()
+			if username == follower:
+				result_json["error"] = "Cannot follow yourself"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
+			###################
+			client = pymongo.MongoClient()
+			mdb = client['356project']
+			follow_collection = mdb["Follow"]
+			result = follow_collection.find_one({"username":username,"follower":follower})
+			
+			if follow_boolean:
+				if result == None:
+					follow_collection.insert_one({"username":username,"follower":follower})
+					result_json["status"] = "OK"
+					client.close()
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+				else:
+					client.close()
+					result_json["error"] = "already followed"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			else:
+				if result == None:
+					client.close()
+					result_json["error"] = "You did not follow he/she"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+				else:
+					r = follow_collection.delete_many({"username":username,"follower":follower})
+					if r.deleted_count==0:
+						result_json['error']="You did not follow he/she"
+						return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+					result_json["status"] = "OK"
+					
+					client.close()
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+			
+
 
 @csrf_exempt
 def index(request):
@@ -98,8 +170,6 @@ def adduser(request):
 				cursor.execute(sql)
 				db.commit()
 			except:
-				cursor.execute(sql)
-				db.commit()
 				#print("error1")
 				db.rollback()
 			db.close()

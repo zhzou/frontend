@@ -9,4 +9,5 @@ urlpatterns = [
     path('search_main', views.search_main, name='search_main'),
     path('additem_main', views.additem_main, name='additem_main'),
     path('item_main', views.item_main, name='item_main'),
+    path('follow_main', views.follow_main, name='follow_main'),
 ]

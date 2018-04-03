@@ -44,5 +44,23 @@
 		<input type="hidden" name="add_bool" value="false">
 		<button type="submit">Delete</button>
 	</form>
+	<b>Follow user:</b>
+	<form method="post" action='/follow_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="true">
+		<button type="submit">Follow</button>
+	</form>
+	<b>UnFollow user:</b>
+	<form method="post" action='/follow_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="false">
+		<button type="submit">Follow</button>
+	</form>
 </body>
 </html>
