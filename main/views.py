@@ -10,6 +10,31 @@ import urllib
 import pymysql, pymongo, random, string
 
 @csrf_exempt
+def follower_main(request):
+	if request.method == 'POST':
+		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username")+'/followers')
+		req.add_header('Content-Type','application/json')
+		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+		response = urllib.request.urlopen(req)
+		return HttpResponse(str(response.read().decode('utf-8')))
+def following_main(request):
+	if request.method == 'POST':
+		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username")+'/following')
+		req.add_header('Content-Type','application/json')
+		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+		response = urllib.request.urlopen(req)
+		return HttpResponse(str(response.read().decode('utf-8')))
+
+@csrf_exempt
+def user_main(request):
+	if request.method == 'POST':
+		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username"))
+		req.add_header('Content-Type','application/json')
+		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+		response = urllib.request.urlopen(req)
+		return HttpResponse(str(response.read().decode('utf-8')))
+
+@csrf_exempt
 def follow_main(request):
 	if request.method == 'POST':
 		data = {"username":request.POST.get("username")}
@@ -57,13 +82,26 @@ def search_main(request):
 	if request.method == 'POST':
 		limit = request.POST.get("limit")
 		timestamp = request.POST.get("timestamp")
+		following = request.POST.get("following")
+		q = request.POST.get("q")
+		username = request.POST.get("username")
 		data = {}
 		if limit != "" and limit != None:
 			data["limit"] = int(limit)
 		if timestamp != "" and timestamp != None:
 			data["timestamp"] = int(timestamp)
+		if following == "true":
+			data["following"] = True
+		else:
+			data["following"] = False
+		if q != "" and q != None:
+			data["q"] = q
+		if username != "" and username != None:
+			data["username"] = username
+			print("here"+username)
 		req = urllib.request.Request('http://127.0.0.1:8000/search')
 		req.add_header('Content-Type','application/json')
+		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
 		return HttpResponse(str(response.read().decode('utf-8')))
 
@@ -103,6 +141,7 @@ def verify(request):
 
 @csrf_exempt
 def index(request):
+	result_json = {"status":"error"}
 	session = ""
 	try:
 		session = request.COOKIES.get('SESSION')

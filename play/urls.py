@@ -12,4 +12,7 @@ urlpatterns = [
     path('item/<str:iid>', views.item, name='insert_item'),
     path('search',views.search,name='search_item'),
     path('follow',views.follow,name='follow'),
+    path('user/<str:username>',views.user,name='user'),
+    path('user/<str:username>/followers',views.user_followers,name='followers'),
+    path('user/<str:username>/following',views.user_following,name='following'),
 ]
