@@ -12,14 +12,14 @@ import pymysql, pymongo, random, string
 @csrf_exempt
 def follower_main(request):
 	if request.method == 'POST':
-		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username")+'/followers')
+		req = urllib.request.Request('http://130.245.169.164/user/'+request.POST.get("username")+'/followers')
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req)
 		return HttpResponse(str(response.read().decode('utf-8')))
 def following_main(request):
 	if request.method == 'POST':
-		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username")+'/following')
+		req = urllib.request.Request('http://130.245.169.164/user/'+request.POST.get("username")+'/following')
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req)
@@ -28,7 +28,7 @@ def following_main(request):
 @csrf_exempt
 def user_main(request):
 	if request.method == 'POST':
-		req = urllib.request.Request('http://127.0.0.1:8000/user/'+request.POST.get("username"))
+		req = urllib.request.Request('http://130.245.169.164/user/'+request.POST.get("username"))
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req)
@@ -40,7 +40,7 @@ def follow_main(request):
 		data = {"username":request.POST.get("username")}
 		if not request.POST.get("add_bool") == 'true':
 			data["follow"] = False
-		req = urllib.request.Request('http://127.0.0.1:8000/follow')
+		req = urllib.request.Request('http://130.245.169.164/follow')
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
@@ -59,7 +59,7 @@ def item_main(request):
 			return HttpResponse(str(response.read().decode('utf-8')))
 		else:
 
-			#req = urllib.request.Request('http://127.0.0.1:8000/item/'+iid)
+			#req = urllib.request.Request('http://130.245.169.164/item/'+iid)
 			#req.method = 'DELETE'
 			#req.add_header('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
 			response = requests.delete('http://130.245.169.164/item/'+iid)
@@ -90,9 +90,7 @@ def search_main(request):
 			data["limit"] = int(limit)
 		if timestamp != "" and timestamp != None:
 			data["timestamp"] = int(timestamp)
-<<<<<<< HEAD
 		req = urllib.request.Request('http://130.245.169.164/search')
-=======
 		if following == "true":
 			data["following"] = True
 		else:
@@ -102,8 +100,7 @@ def search_main(request):
 		if username != "" and username != None:
 			data["username"] = username
 			print("here"+username)
-		req = urllib.request.Request('http://127.0.0.1:8000/search')
->>>>>>> 0d9d3d829714c35e5274f057c97b8588377deb27
+		req = urllib.request.Request('http://130.245.169.164/search')
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
