@@ -16,7 +16,7 @@ def item_main(request):
 		add_bool = request.POST.get("add_bool")
 		print(add_bool)
 		if add_bool == 'true':
-			req = urllib.request.Request('http://127.0.0.1:8000/item/'+iid)
+			req = urllib.request.Request('http://130.245.169.164/item/'+iid)
 			req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 			response = urllib.request.urlopen(req)
 			return HttpResponse(str(response.read().decode('utf-8')))
@@ -25,7 +25,7 @@ def item_main(request):
 			#req = urllib.request.Request('http://127.0.0.1:8000/item/'+iid)
 			#req.method = 'DELETE'
 			#req.add_header('Accept','text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8')
-			response = requests.delete('http://127.0.0.1:8000/item/'+iid)
+			response = requests.delete('http://130.245.169.164/item/'+iid)
 			return HttpResponse(str(response))
 
 @csrf_exempt
@@ -34,7 +34,7 @@ def additem_main(request):
 		content = request.POST.get("content")
 		data = {"content":content}
 		
-		req = urllib.request.Request('http://127.0.0.1:8000/additem')
+		req = urllib.request.Request('http://130.245.169.164/additem')
 		req.add_header('Content-Type','application/json')
 		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
@@ -50,7 +50,7 @@ def search_main(request):
 			data["limit"] = int(limit)
 		if timestamp != "" and timestamp != None:
 			data["timestamp"] = int(timestamp)
-		req = urllib.request.Request('http://127.0.0.1:8000/search')
+		req = urllib.request.Request('http://130.245.169.164/search')
 		req.add_header('Content-Type','application/json')
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
 		return HttpResponse(str(response.read().decode('utf-8')))
@@ -64,7 +64,7 @@ def register(request):
 		password = request.POST.get("password")
 		email = request.POST.get("email")
 		data = {"username":username,"password":password,"email":email}
-		req = urllib.request.Request('http://127.0.0.1:8000/adduser')
+		req = urllib.request.Request('http://130.245.169.164/adduser')
 		req.add_header('Content-Type','application/json')
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
 		r = response.read().decode('utf-8')
@@ -81,7 +81,7 @@ def verify(request):
 		email = request.POST.get("email")
 		data = {"key":key,"email":email}
 		# data2 = {'username':"test_a", 'password': "12345", 'email':"zouzhi96@gmail.com"}
-		req = urllib.request.Request('http://127.0.0.1:8000/verify')
+		req = urllib.request.Request('http://130.245.169.164/verify')
 		req.add_header('Content-Type','application/json')
 		response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
 		r = response.read().decode('utf-8')
@@ -91,6 +91,7 @@ def verify(request):
 
 @csrf_exempt
 def index(request):
+	result_json = {"status":"error"}
 	session = ""
 	try:
 		session = request.COOKIES.get('SESSION')
