@@ -16,8 +16,23 @@
 		<br/>
 		<input type="text" name="limit" value=""/>
 		<br/>
+		<label><b>Enter Search Username:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<label><b>Enter Search Query:</b></label>
+		<br/>
+		<input type="text" name="q" value=""/>
+		<br/>
+		<label><b>Select show following only:</b></label>
+		<br/>
+		
+		  <input type="radio" name="following" value="true" checked> True<br>
+		  <input type="radio" name="following" value="false" > False<br> 
+		 
 		<button type="submit">Search</button>
 	</form>
+	<br/>
 	<b>Additem:</b>
 	<form method="post" action='/additem_main'>{% csrf_token %}
 		<label><b>Enter Content:</b></label>
@@ -43,6 +58,48 @@
 		<br/>
 		<input type="hidden" name="add_bool" value="false">
 		<button type="submit">Delete</button>
+	</form>
+	<b>Follow user:</b>
+	<form method="post" action='/follow_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="true">
+		<button type="submit">Follow</button>
+	</form>
+	<b>UnFollow user:</b>
+	<form method="post" action='/follow_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<input type="hidden" name="add_bool" value="false">
+		<button type="submit">Follow</button>
+	</form>
+	<b>User Profile:</b>
+	<form method="post" action='/user_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<button type="submit">Follow</button>
+	</form>
+	<b>User followers:</b>
+	<form method="post" action='/follower_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<button type="submit">Follow</button>
+	</form>
+	<b>User following:</b>
+	<form method="post" action='/following_main'>{% csrf_token %}
+		<label><b>Enter User:</b></label>
+		<br/>
+		<input type="text" name="username" value=""/>
+		<br/>
+		<button type="submit">Follow</button>
 	</form>
 </body>
 </html>

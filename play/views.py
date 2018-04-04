@@ -6,12 +6,40 @@ import os, smtplib, random, string, json, hashlib, datetime, time
 from email.mime.text import MIMEText
 import pymysql, pymongo
 
+
 @csrf_exempt
 def search(request):
 	result_json = {"status":"error"}
 	if request.method == 'POST':
+		if 'SESSION' in request.COOKIES:
+			session = request.COOKIES['SESSION']
+		else:
+			result_json["error"] = "log in first"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		
 		time_search = int(time.time())
 		limit = 25
+		following = True
+		search_query = None
+		search_username = None
+		db  = pymysql.connect(host='localhost',
+                             user='root',
+                             password='1234',
+                             db='356project',
+                             charset='utf8mb4',
+                             )
+		cursor = db.cursor()
+		sql = "SELECT username FROM SESSIONS WHERE session = \""+session+"\""
+		cursor.execute(sql)
+		username = cursor.fetchone()
+		if username == None:
+			db.close()
+			result_json["error"] = "log in first"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		username = username[0]
+		db.close()
+
+
 		if request.META.get('CONTENT_TYPE') == 'application/json':
 			post_var = json.loads(request.body.decode('utf8'))
 			if "timestamp" in post_var:
@@ -22,17 +50,56 @@ def search(request):
 				else:
 					if post_var["limit"]>0:
 						limit = int(post_var["limit"])
+			if "username" in post_var:
+				search_username = post_var["username"]
+			if "following" in post_var:
+				if post_var["following"] == False:
+					following = False
+			if "q" in post_var:
+				search_query = post_var["q"]
+
+
+
 		client = pymongo.MongoClient()
 		mdb = client['356project']
 		item_collection = mdb['Item']
-		print(type(time_search))
-		result_set = item_collection.find({"timestamp":{ "$lt": time_search}}).limit(limit)
+		#print(type(time_search))
+		result_set = None
+		if search_username != None:
+			if search_query == None:
+				result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
+			else:
+				item_collection.create_index([("content","text")])
+				
+				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
+		elif not following:
+			if search_query == None:
+				result_set = item_collection.find({"timestamp":{ "$lt": time_search}}).limit(limit)
+			else:
+				item_collection.create_index([("content","text")])
+				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}}).limit(limit)
+		else:
+			follow_collection = mdb['Follow']
+			name_set = follow_collection.find_one({"username":username})
+			following_set = name_set["following"]
+			if search_query == None:
+
+				result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
+			else:
+				
+				item_collection.create_index([("content","text")])
+				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
+
+
 		if result_set == None:
 			client.close()
 			result_json['error']= "Invalid id"
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 		
 		items = []
+		print("+++++++++++++++++++++")
+		print(result_set)
+		print("+++++++++++++++++++++")
 		for result in result_set:
 			result['property']['likes'] = int(result['property']['likes'])
 			item_data = {"id":str(result['id']),"username":result['username'],"property":result['property'],"retweeted":int(result['retweeted']),"content":result["content"],"timestamp":result["timestamp"] }
@@ -40,17 +107,9 @@ def search(request):
 		result_json = {"items":items}
 		result_json["status"] = "OK"
 		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-		
-@csrf_exempt
-def follow(request):
-	result_json = {"status":"error"}
-	if request.method == 'POST':
-		if request.META.get('CONTENT_TYPE') == 'application/json':
-			post_json = json.loads(request.boby.decode('utf8'))
-			follow_boolean = True
-			if "follow" in post_json:
-				follow_boolean = post_json["follow"]
-			username = post_json["username"]
+
+			
+
 
 @csrf_exempt
 def index(request):
@@ -98,8 +157,6 @@ def adduser(request):
 				cursor.execute(sql)
 				db.commit()
 			except:
-				cursor.execute(sql)
-				db.commit()
 				#print("error1")
 				db.rollback()
 			db.close()
@@ -138,13 +195,20 @@ def verify(request):
                              charset='utf8mb4',
                              )
 			cursor = db.cursor()
-			cursor.execute("SELECT vkey FROM ACCOUNTS WHERE email=\""+email+"\"")
+			cursor.execute("SELECT vkey, username, verified FROM ACCOUNTS WHERE email=\""+email+"\"")
 			vkey = cursor.fetchone()
 			if vkey == None:
 				db.close()
 				result_json['error'] = "Invalid key or email"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			else:
+				username = vkey[1]
+				verified = vkey[2]
+				if verified == 1:
+					db.close()
+					result_json['error'] = "Already verified"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
 				vkey = vkey[0]
 			if key == 'abracadabra' or vkey == key:
 				sql = "UPDATE ACCOUNTS SET verified = true where email =\""+email+"\""
@@ -155,6 +219,11 @@ def verify(request):
 				except:
 					db.rollback()
 			db.close()
+			client = pymongo.MongoClient()
+			mdb = client['356project']
+			followCollection = mdb['Follow']
+			followCollection.insert_one({"username":username,"following":[],"follower":[],"email":email})
+			client.close()
 
 	if request.method == 'GET':
 		try:
@@ -169,13 +238,20 @@ def verify(request):
                              charset='utf8mb4',
                              )
 			cursor = db.cursor()
-			cursor.execute("SELECT vkey FROM ACCOUNTS WHERE email=\""+email+"\"")
+			cursor.execute("SELECT vkey,username, verified FROM ACCOUNTS WHERE email=\""+email+"\"")
 			vkey = cursor.fetchone()
 			if vkey == None:
 				db.close()
 				result_json['error'] = "Invalid key or email"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			else:
+				username = vkey[1]
+				verified = vkey[2]
+				if verified == 1:
+					db.close()
+					result_json['error'] = "Already verified"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
 				vkey = vkey[0]
 			#print(key)
 			#print(vkey)
@@ -188,6 +264,11 @@ def verify(request):
 				except:
 					db.rollback()
 			db.close()
+			client = pymongo.MongoClient()
+			mdb = client['356project']
+			followCollection = mdb['Follow']
+			followCollection.insert_one({"username":username,"following":[],"follower":[],"email":email})
+			client.close()
 		except:
 			result_json['error'] = "Invalid Json"
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
@@ -331,3 +412,167 @@ def item(request,iid):
                 return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
 
+@csrf_exempt
+def user_followers(request,username):
+	result_json = {"status":"error"}
+	if request.method == 'GET' or request.method == 'POST':
+		limit = 50
+		try:
+			post_var = json.loads(request.body.decode('utf8'))
+			if "limit" in post_var:
+				limit = int(post_var["limit"])
+				if limit > 200:
+					limit = 200
+				elif limit < 0:
+					limit = 50
+		except:
+			pass
+		client = pymongo.MongoClient()
+		mdb = client['356project']
+		follow_collection = mdb['Follow']
+		result_set = follow_collection.find_one({"username":username})
+		if result_set == None:
+			client.close()
+			result_json['error']= "Invalid username"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		result_json["users"] = result_set["follower"]
+		if len(result_json["users"]) > limit:
+			result_json["users"] = result_json["users"][0:limit]
+		result_json["status"] = "OK"
+		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+@csrf_exempt
+def user_following(request,username):
+	result_json = {"status":"error"}
+	if request.method == 'GET' or request.method == 'POST':
+		limit = 50
+		try:
+			post_var = json.loads(request.body.decode('utf8'))
+			if "limit" in post_var:
+				limit = int(post_var["limit"])
+				if limit > 200:
+					limit = 200
+				elif limit < 0:
+					limit = 50
+		except:
+			pass
+		client = pymongo.MongoClient()
+		mdb = client['356project']
+		follow_collection = mdb['Follow']
+		result_set = follow_collection.find_one({"username":username})
+		if result_set == None:
+			client.close()
+			result_json['error']= "Invalid username"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		result_json["users"] = result_set["following"]
+		if len(result_json["users"]) > limit:
+			result_json["users"] = result_json["users"][0:limit]
+		result_json["status"] = "OK"
+		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+
+@csrf_exempt
+def user(request,username):
+	result_json = {"status":"error"}
+	if request.method == 'GET':
+		client = pymongo.MongoClient()
+		mdb = client['356project']
+		follow_collection = mdb['Follow']
+		result_set = follow_collection.find_one({"username":username})
+		if result_set == None:
+			client.close()
+			result_json['error']= "Invalid username"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		user_set = {}
+		user_set["email"] = result_set["email"]
+		user_set["followers"] = result_set["follower"]
+		user_set["following"] = result_set["following"]
+		result_json["user"] = user_set
+		result_json["status"] = "OK"
+		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		
+@csrf_exempt
+def follow(request):
+	result_json = {"status":"error"}
+
+	if request.method == 'POST':
+		if request.META.get('CONTENT_TYPE') == 'application/json':
+			
+
+			if 'SESSION' in request.COOKIES:
+				session = request.COOKIES['SESSION']
+			else:
+				result_json["error"] = "log in first"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			post_json  = json.loads(request.body.decode('utf8'))
+			follow_boolean = True
+			if "follow" in post_json:
+				follow_boolean = post_json["follow"]
+			username = post_json["username"]
+			
+			#current username == follower
+			db  = pymysql.connect(host='localhost',
+                             user='root',
+                             password='1234',
+                             db='356project',
+                             charset='utf8mb4',
+                             )
+			cursor = db.cursor()
+			cursor.execute("SELECT username FROM SESSIONS WHERE session=\""+session+"\"")
+			follower = cursor.fetchone()
+			if follower == None:
+				db.close()
+				result_json["error"] = "log in first"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			follower = follower[0]
+			#check username exist
+			cursor.execute("SELECT username FROM ACCOUNTS WHERE username=\""+username+"\" AND verified = true")
+			check = cursor.fetchone()
+			if check == None:
+				db.close()
+				result_json["error"] = "Invalid username"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
+			#
+			db.close()
+			if username == follower:
+				result_json["error"] = "Cannot follow yourself"
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			
+			###################
+			client = pymongo.MongoClient()
+			mdb = client['356project']
+			follow_collection = mdb["Follow"]
+			result = follow_collection.find_one({"username":username,"follower":{"$in":[follower]}})
+			
+			if follow_boolean:
+				if result == None:
+					follow_collection.update_one({"username":username},{"$push":{"follower":follower}})
+					follow_collection.update_one({"username":follower},{"$push":{"following":username}})
+					result_json["status"] = "OK"
+					client.close()
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+				else:
+					client.close()
+					result_json["error"] = "already followed"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			else:
+				if result == None:
+					client.close()
+					result_json["error"] = "You did not follow he/she"
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+				else:
+					r = follow_collection.update(
+						{"username":username},{'$pull':{"follower":follower}}
+						)
+					r = follow_collection.update(
+						{"username":follower},{'$pull':{"following":username}}
+						)
+					result_json["status"] = "OK"
+					
+					client.close()
+					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")

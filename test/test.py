@@ -28,7 +28,7 @@ import urllib.request
 # imgs = base64.b64encode(img.tobytes())
 
 # data2 = {'filename':'test1','contents': 'asdsad'}
-# req = urllib.request.Request('http://127.0.0.1:8000/ttt/deposit/')
+# req =   urllib.request.Request('http://127.0.0.1:8000/ttt/deposit/')
 # req.add_header('Content-Type','application/json')
 
 # response = urllib.request.urlopen(req, json.dumps(data2).encode('utf8'))
@@ -41,7 +41,7 @@ import urllib.request
 data2 = {'email':'zouzhi96@gmail.com','key':'YXC58QNL'}
 req = urllib.request.Request('http://127.0.0.1:8000/verify/')
 req.add_header('Content-Type','application/json')
-
+req.addheaders.append(('Cookie', 'SESSION=cookievalue'))
 response = urllib.request.urlopen(req, json.dumps(data2).encode('utf8'))
 
 
