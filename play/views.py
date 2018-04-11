@@ -5,7 +5,7 @@ from django.http import HttpResponseBadRequest
 import os, smtplib, random, string, json, hashlib, datetime, time
 from email.mime.text import MIMEText
 import pymysql, pymongo, pylibmc
-
+from bson.objectid import ObjectId
 
 @csrf_exempt
 def search(request):
@@ -332,12 +332,10 @@ def additem(request):
 			client = pymongo.MongoClient()
 			mdb = client['356project']
 			item_collection = mdb['Item']
-			count_collection = mdb['ItemCount']
-			result_count = count_collection.find_one()
+			
 			utime = int(time.time())
 			#item_id = str(item_collection.count())
-			item_id = str(int(result_count['count']))
-			o = count_collection.update({'count':result_count['count']},{'count':int(result_count['count']+1)},upsert=False)
+			item_id = str(ObjectId())
 			new_Item = {"username":username,"id":item_id, "property":{"likes":int(0)},"retweeted":int(0),"content":content, "timestamp":utime}
 			try:
 				object_id = item_collection.insert_one(new_Item)
