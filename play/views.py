@@ -544,8 +544,8 @@ def follow(request):
 
 def like(request,iid):
 	result_json = {"status":"error"}
-    if request.method == 'POST':
-    	if 'SESSION' in request.COOKIES:
+	if request.method == 'POST':
+		if 'SESSION' in request.COOKIES:
 				session = request.COOKIES['SESSION']
 		else:
 			result_json["error"] = "log in first"
@@ -576,6 +576,7 @@ def like(request,iid):
 				result_json["status"] = "OK"
 			client.close()
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
 
 
