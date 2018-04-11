@@ -13,4 +13,6 @@ urlpatterns = [
     path('user_main', views.user_main, name='user_main'),
     path('follower_main', views.follower_main, name='follower_main'),
     path('following_main', views.following_main, name='following_main'),
+    path('like_main', views.like_main, name='like_main'),
+    path('unlike_main', views.unlike_main, name='unlike_main'),
 ]

@@ -15,4 +15,5 @@ urlpatterns = [
     path('user/<str:username>',views.user,name='user'),
     path('user/<str:username>/followers',views.user_followers,name='followers'),
     path('user/<str:username>/following',views.user_following,name='following'),
+    path('item/<str:iid>/like',views.user_following,name='following'),
 ]

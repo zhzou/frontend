@@ -10,6 +10,26 @@ import urllib
 import pymysql, pymongo, random, string
 
 @csrf_exempt
+def unlike_main(request):
+	iid = request.POST.get("item")
+	data = {"like":False}
+	req = urllib.request.Request('http://130.245.169.164/item/'+iid+'/like')
+	req.add_header('Content-Type','application/json')
+	req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+	response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
+	return HttpResponse(str(response.read().decode('utf-8')))
+
+@csrf_exempt
+def like_main(request):
+	iid = request.POST.get("item")
+	data = {"like":True}
+	req = urllib.request.Request('http://130.245.169.164/item/'+iid+'/like')
+	req.add_header('Content-Type','application/json')
+	req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+	response = urllib.request.urlopen(req, json.dumps(data).encode('utf8'))
+	return HttpResponse(str(response.read().decode('utf-8')))
+
+@csrf_exempt	
 def follower_main(request):
 	if request.method == 'POST':
 		req = urllib.request.Request('http://130.245.169.164/user/'+request.POST.get("username")+'/followers')

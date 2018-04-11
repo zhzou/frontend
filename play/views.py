@@ -288,8 +288,9 @@ def login(request):
 			else:
 				db.close()
 				username = username[0]
+				session = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
 				mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
-				mc[session] = username[0]
+				mc[session] = username
 				result_json = {"status":"OK"}
 				response = HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 				response.set_cookie('SESSION', session)
@@ -350,7 +351,6 @@ def additem(request):
 
 def item(request,iid):
         result_json = {"status":"error"}
-        print(request.method)
         if request.method == 'GET':
                 iid = str(iid)
                 client = pymongo.MongoClient()
@@ -541,3 +541,42 @@ def follow(request):
 					client.close()
 					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+def like(request,iid):
+	result_json = {"status":"error"}
+    if request.method == 'POST':
+    	if 'SESSION' in request.COOKIES:
+				session = request.COOKIES['SESSION']
+		else:
+			result_json["error"] = "log in first"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		post_json  = json.loads(request.body.decode('utf8'))
+		like_boolean = True
+		if "like" in post_json:
+			like_boolean = post_json["like"]
+		client = pymongo.MongoClient()
+		mdb = client['356project']
+		item_collection = mdb["Item"]
+		likes = item_collection.find_one({"id":iid})
+		if likes == None:
+			result_json["error"] = "Item not exist"
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		likes = likes["property"]["likes"]
+
+		if like_boolean:
+			likes += 1
+			r = item_collection.update({"id":iid},{"property":{"likes":likes}})
+			result_json["status"] = "OK"
+			client.close()
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+		else:
+			if likes > 0:
+				likes -= 1
+				r = item_collection.update({"id":iid},{"property":{"likes":likes}})
+				result_json["status"] = "OK"
+			client.close()
+			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+
+
+			
