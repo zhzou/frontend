@@ -4,7 +4,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseBadRequest
 import os, smtplib, random, string, json, hashlib, datetime, time
 from email.mime.text import MIMEText
-import pymysql, pymongo
+import pymysql, pymongo, pylibmc
 
 
 @csrf_exempt
@@ -22,23 +22,12 @@ def search(request):
 		following = True
 		search_query = None
 		search_username = None
-		db  = pymysql.connect(host='localhost',
-                             user='root',
-                             password='1234',
-                             db='356project',
-                             charset='utf8mb4',
-                             )
-		cursor = db.cursor()
-		sql = "SELECT username FROM SESSIONS WHERE session = \""+session+"\""
-		cursor.execute(sql)
-		username = cursor.fetchone()
-		if username == None:
-			db.close()
+		mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama":True})
+		if session not in mc:
 			result_json["error"] = "log in first"
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-		username = username[0]
-		db.close()
-
+		else:
+			username = mc[session]
 
 		if request.META.get('CONTENT_TYPE') == 'application/json':
 			post_var = json.loads(request.body.decode('utf8'))
@@ -297,15 +286,10 @@ def login(request):
 				result_json['error'] = "Invalid account, password or not verified"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			else:
+				db.close()
 				username = username[0]
-				result_json = {"status":"OK"}
-				session = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
-				sql = "INSERT INTO SESSIONS(session, username) VALUES(\""+session+"\",\""+username+"\");"
-				try:
-					cursor.execute(sql)
-					db.commit()
-				except:
-					db.rollback()
+				mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+				mc[session] = username[0]
 				result_json = {"status":"OK"}
 				response = HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 				response.set_cookie('SESSION', session)
@@ -320,6 +304,8 @@ def logout(request):
 		if 'SESSION' in request.COOKIES:
 			session = request.COOKIES['SESSION']
 			result_json = {"status":"OK"}
+			mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+			del mc[session]
 			response = HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			response.set_cookie('SESSION', '')
 			return response
@@ -337,22 +323,12 @@ def additem(request):
 			else:
 				result_json["error"] = "log in first"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-			db  = pymysql.connect(host='localhost',
-                             user='root',
-                             password='1234',
-                             db='356project',
-                             charset='utf8mb4',
-                             )
-			cursor = db.cursor()
-			sql = "SELECT username FROM SESSIONS WHERE session = \""+session+"\""
-			cursor.execute(sql)
-			username = cursor.fetchone()
-			if username == None:
-				db.close()
+			mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+			if session in mc:
+				username = mc[session]
+			else:
 				result_json["error"] = "log in first"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-			username = username[0]
-			db.close()
 			client = pymongo.MongoClient()
 			mdb = client['356project']
 			item_collection = mdb['Item']
@@ -500,8 +476,6 @@ def follow(request):
 
 	if request.method == 'POST':
 		if request.META.get('CONTENT_TYPE') == 'application/json':
-			
-
 			if 'SESSION' in request.COOKIES:
 				session = request.COOKIES['SESSION']
 			else:
@@ -514,38 +488,31 @@ def follow(request):
 			username = post_json["username"]
 			
 			#current username == follower
-			db  = pymysql.connect(host='localhost',
-                             user='root',
-                             password='1234',
-                             db='356project',
-                             charset='utf8mb4',
-                             )
-			cursor = db.cursor()
-			cursor.execute("SELECT username FROM SESSIONS WHERE session=\""+session+"\"")
-			follower = cursor.fetchone()
-			if follower == None:
-				db.close()
+			
+			mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+			if session in mc:
+				follower = mc[session]
+			else:
 				result_json["error"] = "log in first"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
-			follower = follower[0]
-			#check username exist
-			cursor.execute("SELECT username FROM ACCOUNTS WHERE username=\""+username+"\" AND verified = true")
-			check = cursor.fetchone()
-			if check == None:
-				db.close()
-				result_json["error"] = "Invalid username"
-				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			
-			#
-			db.close()
+			#check username exist
+			client = pymongo.MongoClient()
+			mdb = client['356project']
+			follow_collection = mdb["Follow"]
+			result = follow_collection.find_one({"username":username})
+			if result == None:
+				result_json["error"] = "Invalid username"
+				client.close()
+				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+
+
 			if username == follower:
 				result_json["error"] = "Cannot follow yourself"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			
 			###################
-			client = pymongo.MongoClient()
-			mdb = client['356project']
-			follow_collection = mdb["Follow"]
+			
 			result = follow_collection.find_one({"username":username,"follower":{"$in":[follower]}})
 			
 			if follow_boolean:
