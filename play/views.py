@@ -23,6 +23,7 @@ def search(request):
 		search_query = None
 		search_username = None
 		mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama":True})
+		print(mc[session])
 		if session not in mc:
 			result_json["error"] = "log in first"
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
@@ -291,6 +292,7 @@ def login(request):
 				session = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
 				mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
 				mc[session] = username
+
 				result_json = {"status":"OK"}
 				response = HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 				response.set_cookie('SESSION', session)
@@ -542,11 +544,12 @@ def follow(request):
 					return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
+@csrf_exempt
 def like(request,iid):
 	result_json = {"status":"error"}
 	if request.method == 'POST':
 		if 'SESSION' in request.COOKIES:
-				session = request.COOKIES['SESSION']
+			session = request.COOKIES['SESSION']
 		else:
 			result_json["error"] = "log in first"
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
@@ -565,19 +568,45 @@ def like(request,iid):
 
 		if like_boolean:
 			likes += 1
-			r = item_collection.update({"id":iid},{"property":{"likes":likes}})
+			r = item_collection.update({"id":iid},{"$set":{"property":{"likes":likes}}})
 			result_json["status"] = "OK"
 			client.close()
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 		else:
 			if likes > 0:
 				likes -= 1
-				r = item_collection.update({"id":iid},{"property":{"likes":likes}})
+				r = item_collection.update({"id":iid},{"$set":{"property":{"likes":likes}}})
 				result_json["status"] = "OK"
 			client.close()
 			return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
 
+@csrf_exempt
+def addmedia(request):
+	file = {}
+	result_json = {"status":"error"}
+	if request.method == 'POST':
+		file_c = json.loads(request.body.decode('utf8'))
+		content = file_c['content']
+		content_type = request.META.get('CONTENT_TYPE')
+		item_id = str(ObjectId())
+		file = {"id":item_id, "content":content,"type":content_type}
+		cluster = Cluster()
+		session = cluster.connect('356project')
+		stmt = session.prepare("""
+			           INSERT INTO media (id, content, type)
+			           VALUES (?, ?, ?)
+			           """)
+		try:
+			session.execute(stmt,file)
+			result_json["status"] = "OK"
+			result_json["id"] = item_id
+		except:
+			pass
+		session.shutdown()
+		cluster.shutdown()
+		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
 			
