@@ -7,7 +7,7 @@ import urllib.request
 from django.views.decorators.csrf import csrf_exempt
 import urllib.request
 import urllib
-import pymysql, pymongo, random, string
+import pymysql, pymongo, random, string, pylibmc
 
 @csrf_exempt
 def unlike_main(request):
@@ -173,22 +173,13 @@ def index(request):
 		if session == "" or session == None:
 			return render(request,'html/index2.html')
 		elif len(session) == 8:
-
+			mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+			
 			#session
-			db  = pymysql.connect(host='localhost',
-                             user='root',
-                             password='1234',
-                             db='356project',
-                             charset='utf8mb4',
-                             )
-			cursor = db.cursor()
-			cursor.execute("SELECT username FROM SESSIONS WHERE session=\""+session+"\" \
-				")
-			username = cursor.fetchone()
-			if username == None:
-				db.close()
+			if session not in mc:
 				result_json['error'] = "Invalid account, password or not verified"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
+			username = mc[session]
 			data = {"username":username}
 			resp = render(request,'html/main_page.html')
 			resp.set_cookie('SESSION',session)
@@ -212,15 +203,12 @@ def index(request):
 				result_json['error'] = "Invalid account, password or not verified"
 				return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 			else:
+				db.close()
 				username = username[0]
 				result_json = {"status":"OK"}
 				session = ''.join(random.SystemRandom().choice(string.ascii_uppercase + string.digits) for _ in range(8))
-				sql = "INSERT INTO SESSIONS(session, username) VALUES(\""+session+"\",\""+username+"\");"
-				try:
-					cursor.execute(sql)
-					db.commit()
-				except:
-					db.rollback()
+				mc = pylibmc.Client(["127.0.0.1"],binary=True,behaviors={"tcp_nodelay": True,"ketama": True})
+				mc[session] = username
 				result_json = {"status":"OK"}
 				data = {"username":username}
 				response = render(request,'html/main_page.html',data)
@@ -229,3 +217,4 @@ def index(request):
 				
 			
 	return render(request,'html/index2.html')
+

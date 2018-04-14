@@ -4,8 +4,9 @@ from django.views.decorators.csrf import csrf_exempt
 from django.http import HttpResponseBadRequest
 import os, smtplib, random, string, json, hashlib, datetime, time
 from email.mime.text import MIMEText
-import pymysql, pymongo, pylibmc
+import pymysql, pymongo, pylibmc 
 from bson.objectid import ObjectId
+from cassandra.cluster import Cluster
 
 @csrf_exempt
 def search(request):
@@ -47,7 +48,18 @@ def search(request):
 					following = False
 			if "q" in post_var:
 				search_query = post_var["q"]
-
+			rank = "interest"
+			if "rank" in post_var:
+				rank = post_var["rank"]
+			parent = None
+			if "parent" in post_var:
+				parent = post_var["parent"]
+			replies = True
+			if "replies" in post_var:
+				replies = post_var["replies"]
+			hasMedia = False
+			if "hasMedia" in post_var:
+				hasMedia = post_var["hasMedia"]
 
 
 		client = pymongo.MongoClient()
@@ -55,31 +67,55 @@ def search(request):
 		item_collection = mdb['Item']
 		#print(type(time_search))
 		result_set = None
+		#########################################################
+		#new approach
+		search_dic = {"timestamp":{ "$lt": time_search}}
 		if search_username != None:
-			if search_query == None:
-				result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
-			else:
-				item_collection.create_index([("content","text")])
-				
-				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
-		elif not following:
-			if search_query == None:
-				result_set = item_collection.find({"timestamp":{ "$lt": time_search}}).limit(limit)
-			else:
-				item_collection.create_index([("content","text")])
-				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}}).limit(limit)
-		else:
+			search_dic ["username"] = search_username
+		elif following:
 			follow_collection = mdb['Follow']
 			name_set = follow_collection.find_one({"username":username})
 			following_set = name_set["following"]
-			if search_query == None:
+			search_dic ["username"] = {"$in":following_set}
+		if search_query != None:
+			search_dic ["$text"] = {"$search": search_query}
+		if not replies:
+			search_dic ["childType"] = {"$ne" : "reply"}
+		if parent != None:
+			search_dic ["parent"] = parent
+		if hasMedia:
+			search_dic ["media"] = {"$ne":None}
 
-				result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
-			else:
+
+		##########################################################
+		# if search_username != None:
+		# 	if search_query == None:
+		# 		result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
+		# 	else:
+		# 		item_collection.create_index([("content","text")])
 				
-				item_collection.create_index([("content","text")])
-				result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
+		# 		result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":search_username}).limit(limit)
+		# elif not following:
+		# 	if search_query == None:
+		# 		result_set = item_collection.find({"timestamp":{ "$lt": time_search}}).limit(limit)
+		# 	else:
+		# 		item_collection.create_index([("content","text")])
+		# 		result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}}).limit(limit)
+		# else:
+		# 	follow_collection = mdb['Follow']
+		# 	name_set = follow_collection.find_one({"username":username})
+		# 	following_set = name_set["following"]
+		# 	if search_query == None:
 
+		# 		result_set = item_collection.find({"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
+		# 	else:
+				
+		# 		item_collection.create_index([("content","text")])
+		# 		result_set = item_collection.find({"$text": {"$search": search_query},"timestamp":{ "$lt": time_search}, "username":{"$in":following_set}}).limit(limit)
+		if rank == "interest":
+			result_set = item_collection.find(search_dic).sort([("property.likes",-1)]).limit(limit)
+		elif rank == "time":
+			result_set = item_collection.find(search_dic).sort([("timestamp",-1)]).limit(limit)
 
 		if result_set == None:
 			client.close()
@@ -321,6 +357,18 @@ def additem(request):
 		if request.META.get('CONTENT_TYPE') == 'application/json':
 			post_var = json.loads(request.body.decode('utf8'))
 			content = post_var["content"]
+			childType = None
+			parent = ""
+			media = []
+			if "childType" in post_var:
+				if post_var["childType"]!= None:
+					childType = post_var["childType"]
+			if "parent" in post_var:
+				if post_var["parent"]!= None:
+					childType = post_var["parent"]
+			if "media" in post_var:
+				if post_var["media"]!= None:
+					childType = post_var["media"]
 			if 'SESSION' in request.COOKIES:
 				session = request.COOKIES['SESSION']
 			else:
@@ -339,7 +387,7 @@ def additem(request):
 			utime = int(time.time())
 			#item_id = str(item_collection.count())
 			item_id = str(ObjectId())
-			new_Item = {"username":username,"id":item_id, "property":{"likes":int(0)},"retweeted":int(0),"content":content, "timestamp":utime}
+			new_Item = {"username":username,"id":item_id, "property":{"likes":int(0)},"retweeted":int(0),"content":content, "timestamp":utime,"childType":childType,"parent":parent,"media":media}
 			try:
 				object_id = item_collection.insert_one(new_Item)
 				result_json['id'] = item_id
@@ -364,7 +412,9 @@ def item(request,iid):
                         result_json['error']= "Invalid id"
                         return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
                 print(result['timestamp'])
-                item_data = {"id":result['id'],"username":result['username'],"property":result['property'],"retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"]}
+                item_data = {"id":result['id'],"username":result['username'],"property":result['property'],
+                "retweeted":result['retweeted'],"content":result["content"],"timestamp":result["timestamp"],
+                "childType":result["childType"],"parent":result['parent'],"media":result['media']}
                 result_json = {"item":item_data}
                 result_json["status"] = "OK"
                 client.close()
@@ -609,4 +659,14 @@ def addmedia(request):
 		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 	return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
 
-			
+@csrf_exempt
+def media(request,iid):
+	file = {}
+	result_json = {"status":"error"}
+	cluster = Cluster()
+	session = cluster.connect('356project')
+	file_lookup = session.prepare("select content, type from media where 'id' = ?")
+	contents = session.execute(file_lookup,[iid])
+	if contents != None and contents != '':
+		return HttpResponse(contents.content.read(), content_type=contents.type)
+	return HttpResponse("OK")

@@ -101,5 +101,21 @@
 		<br/>
 		<button type="submit">Follow</button>
 	</form>
+	<b>Like:</b>
+	<form method="post" action='/like_main'>{% csrf_token %}
+		<label><b>Enter Item:</b></label>
+		<br/>
+		<input type="text" name="item" value=""/>
+		<br/>
+		<button type="submit">Like</button>
+	</form>
+	<b>UnLike:</b>
+	<form method="post" action='/unlike_main'>{% csrf_token %}
+		<label><b>Enter Item:</b></label>
+		<br/>
+		<input type="text" name="item" value=""/>
+		<br/>
+		<button type="submit">UnLike</button>
+	</form>
 </body>
 </html>
