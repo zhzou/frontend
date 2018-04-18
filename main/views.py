@@ -10,6 +10,30 @@ import urllib
 import pymysql, pymongo, random, string, pylibmc
 
 @csrf_exempt
+def upload(request):
+	if request.method == 'POST' and request.FILES['myfile']:
+		myfile = request.FILES['myfile']
+		print(myfile.content_type)
+		content = b''
+		for chunk in myfile.chunks():
+			content += chunk
+		print(content)
+		req = urllib.request.Request('http://130.245.169.164/addmedia')
+		req.add_header('Content-Type',myfile.content_type)
+		req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+		response = urllib.request.urlopen(req, content)
+		return HttpResponse(str(response.read().decode('utf-8')))
+
+@csrf_exempt
+def getmedia(request):
+	iid = request.POST.get("item")
+	req = urllib.request.Request('http://130.245.169.164/media/'+iid)
+	req.add_header('Content-Type','application/json')
+	req.add_header('Cookie', 'SESSION='+request.COOKIES.get('SESSION'))
+	response = urllib.request.urlopen(req)
+	return HttpResponse(response.read(),content_type="image/jpeg")
+
+@csrf_exempt
 def unlike_main(request):
 	iid = request.POST.get("item")
 	data = {"like":False}

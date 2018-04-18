@@ -636,14 +636,15 @@ def like(request,iid):
 def addmedia(request):
 	file = {}
 	result_json = {"status":"error"}
-	if request.method == 'POST':
-		file_c = json.loads(request.body.decode('utf8'))
-		content = file_c['content']
+	if request.method == 'POST' or request.method == 'GET':
+		content = request.body
+		#content = file_c['content']
+		print(content)
 		content_type = request.META.get('CONTENT_TYPE')
 		item_id = str(ObjectId())
 		file = {"id":item_id, "content":content,"type":content_type}
 		cluster = Cluster()
-		session = cluster.connect('356project')
+		session = cluster.connect('project356')
 		stmt = session.prepare("""
 			           INSERT INTO media (id, content, type)
 			           VALUES (?, ?, ?)
@@ -653,7 +654,9 @@ def addmedia(request):
 			result_json["status"] = "OK"
 			result_json["id"] = item_id
 		except:
+			print("???")
 			pass
+
 		session.shutdown()
 		cluster.shutdown()
 		return HttpResponse(json.dumps(result_json).encode('utf8'),content_type="application/json")
@@ -664,9 +667,9 @@ def media(request,iid):
 	file = {}
 	result_json = {"status":"error"}
 	cluster = Cluster()
-	session = cluster.connect('356project')
-	file_lookup = session.prepare("select content, type from media where 'id' = ?")
+	session = cluster.connect('project356')
+	file_lookup = session.prepare("select content, type from media where id = ?")
 	contents = session.execute(file_lookup,[iid])
 	if contents != None and contents != '':
-		return HttpResponse(contents.content.read(), content_type=contents.type)
+		return HttpResponse(contents[0][0], content_type=contents[0][1])
 	return HttpResponse("OK")

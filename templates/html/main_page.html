@@ -117,5 +117,19 @@
 		<br/>
 		<button type="submit">UnLike</button>
 	</form>
+	<b>Upload Media:</b>
+	<form method="post" action="upload" enctype="multipart/form-data">
+	    {% csrf_token %}
+	    <input type="file" name="myfile">
+	    <button type="submit">Upload</button>
+	  </form>
+	  <b>Get Media:</b>
+	<form method="post" action='getmedia'>{% csrf_token %}
+		<label><b>Enter Item:</b></label>
+		<br/>
+		<input type="text" name="item" value=""/>
+		<br/>
+		<button type="submit">GET</button>
+	</form>
 </body>
 </html>
