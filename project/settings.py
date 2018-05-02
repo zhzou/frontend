@@ -129,4 +129,11 @@ STATIC_URL = '/static/'
 STATICFILES_DIRS = ( os.path.join(BASE_DIR, 'static'), )
 TEMPLATES_DIRS = (os.path.join(BASE_DIR, 'templates'), )
 
-
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.memcached.MemcachedCache',
+        'LOCATION': [
+            '192.168.1.7:11211',
+        ]
+    }
+}

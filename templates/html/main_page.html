@@ -7,7 +7,7 @@
 <body>
 	<h1>Hello, welcome to Twizzer {{ username }}</h1>
 	<b>Search:</b>
-	<form method="post" action='/search_main'>{% csrf_token %}
+	<form method="post" action='/ssearch_main'>{% csrf_token %}
 		<label><b>Enter Timestamp:</b></label>
 		<br/>
 		<input type="text" name="timestamp" value=""/>
@@ -42,7 +42,7 @@
 		<button type="submit">Add</button>
 	</form>
 	<b>Add item:</b>
-	<form method="post" action='/item_main'>{% csrf_token %}
+	<form method="post" action='/sitem_main'>{% csrf_token %}
 		<label><b>Enter id:</b></label>
 		<br/>
 		<input type="text" name="id" value=""/>
@@ -51,7 +51,7 @@
 		<button type="submit">Search</button>
 	</form>
 	<b>Delete item:</b>
-	<form method="post" action='/item_main'>{% csrf_token %}
+	<form method="post" action='/sitem_main'>{% csrf_token %}
 		<label><b>Enter id:</b></label>
 		<br/>
 		<input type="text" name="id" value=""/>
@@ -78,7 +78,7 @@
 		<button type="submit">Follow</button>
 	</form>
 	<b>User Profile:</b>
-	<form method="post" action='/user_main'>{% csrf_token %}
+	<form method="post" action='/suser_main'>{% csrf_token %}
 		<label><b>Enter User:</b></label>
 		<br/>
 		<input type="text" name="username" value=""/>
@@ -86,7 +86,7 @@
 		<button type="submit">Follow</button>
 	</form>
 	<b>User followers:</b>
-	<form method="post" action='/follower_main'>{% csrf_token %}
+	<form method="post" action='/sfollower_main'>{% csrf_token %}
 		<label><b>Enter User:</b></label>
 		<br/>
 		<input type="text" name="username" value=""/>
@@ -94,7 +94,7 @@
 		<button type="submit">Follow</button>
 	</form>
 	<b>User following:</b>
-	<form method="post" action='/following_main'>{% csrf_token %}
+	<form method="post" action='/sfollowing_main'>{% csrf_token %}
 		<label><b>Enter User:</b></label>
 		<br/>
 		<input type="text" name="username" value=""/>
@@ -118,7 +118,7 @@
 		<button type="submit">UnLike</button>
 	</form>
 	<b>Upload Media:</b>
-	<form method="post" action="upload" enctype="multipart/form-data">
+	<form method="post" action="/addmedia" enctype="multipart/form-data">
 	    {% csrf_token %}
 	    <input type="file" name="myfile">
 	    <button type="submit">Upload</button>
